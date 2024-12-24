@@ -19,7 +19,8 @@ const Login = ({ navigation }: any) => {
     try {
       await signInWithEmailAndPassword(FIREBASE_AUTH, email, password);
       Alert.alert("Success", "Logged in successfully!");
-      navigation.navigate("Home"); // Navigate to Home page after successful login
+      // Passing the email as a parameter to the Home screen
+      navigation.navigate("Home", { username: email }); 
     } catch (error: any) {
       Alert.alert("Error", error.message);
     }
