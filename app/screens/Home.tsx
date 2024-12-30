@@ -1,31 +1,53 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from "react-native";
+import { useClickCount } from "./ClickCountContext"; // Import the custom hook
+
+// Define the type for the item data (nutritional product data)
+interface Item {
+  product_name: string;
+  brands: string;
+  nutrition_grades: string;
+  image_url: string | null;
+}
+
+const API_URL = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=kids&search_simple=1&json=true&fields=product_name,brands,nutrition_grades,image_url";
 
 const Home = ({ route }: any) => {
-  const { username } = route.params;
+  const { username } = route.params; // Extract the username passed as a parameter
 
-  // State to store fetched data
-  const [items, setItems] = useState<any[]>([]);
-  
+  const { clickCount, incrementClickCount } = useClickCount(); // Use the context to access and update the count
+
+  const [items, setItems] = useState<Item[]>([]); // State to store fetched items
+
+  // Fetch data from the Open Food Facts API when the component mounts
   useEffect(() => {
-    // Fetch data from a public API
-    fetch("https://fakestoreapi.com/products")
-      .then((response) => response.json())
-      .then((data) => setItems(data))
-      .catch((error) => console.error("Error fetching data:", error));
+    const fetchData = async () => {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        setItems(data.products); // Update the state with the fetched items
+      } catch (error) {
+        console.error("Error fetching data: ", error);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  // Render each item in the list
-  const renderItem = ({ item }: any) => {
+  // Render each item as a card
+  const renderItem = ({ item }: { item: Item }) => {
     return (
-      <View style={styles.card}>
-        <Image source={{ uri: item.image }} style={styles.cardImage} />
-        <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          <Text style={styles.cardDescription}>{item.description}</Text>
-          <Text style={styles.cardStatus}>Status: Available</Text>
-        </View>
-      </View>
+      <TouchableOpacity onPress={incrementClickCount} style={styles.card}>
+        {item.image_url ? (
+          <Image source={{ uri: item.image_url }} style={styles.image} />
+        ) : (
+          <Text>No image available</Text>
+        )}
+        <Text style={styles.status}>{item.product_name}</Text>
+        <Text style={styles.description}>
+          Brand: {item.brands || "Unknown"} | Nutrition Grade: {item.nutrition_grades || "N/A"}
+        </Text>
+      </TouchableOpacity>
     );
   };
 
@@ -33,14 +55,20 @@ const Home = ({ route }: any) => {
     <View style={styles.container}>
       <Text style={styles.header}>Welcome to the Home Page</Text>
       <Text style={styles.username}>Hello, {username}</Text>
-      
-      {/* FlatList to display the items */}
+
+      {/* Render the list of items */}
       <FlatList
         data={items}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
+        keyExtractor={(item, index) => index.toString()}
       />
+
+      {/* Floating button at the bottom to show the click count */}
+      <View style={styles.floatingButtonContainer}>
+        <TouchableOpacity style={styles.floatingButton}>
+          <Text style={styles.floatingButtonText}>{clickCount}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -48,6 +76,8 @@ const Home = ({ route }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: "#fff",
     padding: 20,
   },
@@ -55,47 +85,57 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
-    textAlign: "center",
   },
   username: {
     fontSize: 18,
     color: "#69D4DC",
     fontWeight: "bold",
-    textAlign: "center",
     marginBottom: 20,
   },
-  listContainer: {
-    marginTop: 20,
-  },
   card: {
-    flexDirection: "row",
     backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-    marginBottom: 15,
-    padding: 10,
-    elevation: 3,
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+    width: 300,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
   },
-  cardImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+  image: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
   },
-  cardContent: {
-    flex: 1,
-    paddingLeft: 10,
-  },
-  cardTitle: {
+  status: {
     fontSize: 18,
     fontWeight: "bold",
+    marginTop: 10,
   },
-  cardDescription: {
+  description: {
     fontSize: 14,
-    color: "#777",
-    marginVertical: 5,
+    color: "#555",
+    marginTop: 5,
+    textAlign: "center",
   },
-  cardStatus: {
-    fontSize: 12,
-    color: "#4CAF50",
+  floatingButtonContainer: {
+    position: "absolute",
+    bottom: 30,
+    right: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  floatingButton: {
+    backgroundColor: "#69D4DC",
+    padding: 15,
+    borderRadius: 50,
+    elevation: 5,
+  },
+  floatingButtonText: {
+    fontSize: 18,
+    color: "#fff",
     fontWeight: "bold",
   },
 });
